@@ -6,6 +6,33 @@
     white-space: pre-wrap;
 }
 
+.agent-chat {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+
+.agent-message {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.agent-message .agent-name {
+    font-weight: bold;
+    color: #0d6efd;
+    margin-bottom: 5px;
+}
+
+.agent-message .timestamp {
+    font-size: 0.8em;
+    color: #6c757d;
+}
+
 #loading {
     text-align: center;
     padding: 20px;
@@ -14,6 +41,7 @@
 .card {
     height: 100%;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
 }
 
 .card-body {
@@ -27,4 +55,15 @@ textarea.form-control {
 
 .btn-primary {
     margin-top: auto;
+}
+
+.input-group .remove-character {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+#characters-container {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 10px;
 } 

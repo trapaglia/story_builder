@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, jsonify
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
+from agents import StoryOrchestrator
+import asyncio
 
 # Cargar variables de entorno
 load_dotenv()
@@ -9,6 +11,7 @@ load_dotenv()
 # Inicializar Flask y OpenAI
 app = Flask(__name__)
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+orchestrator = StoryOrchestrator(client)
 
 @app.route('/')
 def index():
@@ -20,25 +23,25 @@ def generate_story():
     initial_idea = data.get('initial_idea')
     character_count = data.get('character_count')
     narration_style = data.get('narration_style')
+    character_names = data.get('character_names', [])  # Lista de nombres de personajes
     
-    # Crear el prompt para OpenAI
-    prompt = f"""Escribe una historia basada en la siguiente idea: {initial_idea}
-    La historia debe tener aproximadamente {character_count} caracteres.
-    Estilo de narración: {narration_style}
-    Por favor, escribe una historia coherente y atractiva siguiendo estas pautas."""
+    # Agregar agentes de personaje para cada nombre proporcionado
+    for name in character_names:
+        orchestrator.add_character_agent(name)
     
     try:
-        # Llamar a la API de OpenAI
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "Eres un escritor creativo experto en crear historias cautivadoras. Narras de manera inmersiva y con un tono emocional."},
-                {"role": "user", "content": prompt}
-            ]
+        # Crear un nuevo evento loop para manejar la generación asíncrona
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        # Generar la historia y obtener el chat
+        result = loop.run_until_complete(
+            orchestrator.generate_story(initial_idea, character_count, narration_style)
         )
         
-        story = response.choices[0].message.content
-        return jsonify({"story": story})
+        loop.close()
+        
+        return jsonify(result)
     
     except Exception as e:
         return jsonify({"error": str(e)}), 500

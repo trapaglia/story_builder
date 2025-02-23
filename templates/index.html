@@ -8,11 +8,12 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container mt-5">
+    <div class="container-fluid mt-5">
         <h1 class="text-center mb-4">Generador de Historias</h1>
         
         <div class="row">
-            <div class="col-md-6">
+            <!-- Panel de Configuración -->
+            <div class="col-md-4">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Configura tu historia</h5>
@@ -38,6 +39,22 @@
                                     <option value="tercera_persona">Tercera persona</option>
                                 </select>
                             </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Personajes</label>
+                                <div id="characters-container">
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control character-name" 
+                                            placeholder="Nombre del personaje">
+                                        <button type="button" class="btn btn-outline-secondary remove-character">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="add-character">
+                                    + Añadir Personaje
+                                </button>
+                            </div>
                             
                             <button type="submit" class="btn btn-primary">Generar Historia</button>
                         </form>
@@ -45,8 +62,9 @@
                 </div>
             </div>
             
-            <div class="col-md-6">
-                <div class="card">
+            <!-- Panel de Historia -->
+            <div class="col-md-8">
+                <div class="card mb-4">
                     <div class="card-body">
                         <h5 class="card-title">Tu Historia</h5>
                         <div id="storyOutput" class="story-content">
@@ -57,6 +75,16 @@
                                 <span class="visually-hidden">Cargando...</span>
                             </div>
                             <p class="text-muted">Generando tu historia...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de Chat de Agentes -->
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Conversación entre Agentes</h5>
+                        <div id="agentChat" class="agent-chat">
+                            <p class="text-muted">La conversación entre agentes aparecerá aquí...</p>
                         </div>
                     </div>
                 </div>
