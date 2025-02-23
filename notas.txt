@@ -1,0 +1,7 @@
+
+estan por entrar a una cueva, no se sabe que puede pasar, lo unico claro es que van a salir mucho mas sabios o no van a salir
+
+
+- cuando se genera la historia, pon abajo cuantos caracteres totales se usaron.
+- si la historia pedida supera los 10000 caracteres, el narrador tiene que separar la historia en capitulos. 
+- quiero un agente que se encarge de planear los eventos, dandoselos al narrador para que lo comunique a los personajes, y luego con su feedback el agente planeador ajusta su contenido. Dicho planeador tiene como objetivo principal mantener al expectador expectante, plantando intrigas que se resolveran mas adelante. Tambien tiene que lograr un entramado complejo, como hacer que la historia personal de un personaje lo hace involucrarse de manera especial con la historia principal. Tiene que planear como los personajes van develando su identidad de a poco, quizas dando sorpresas al lector a mitad de la trama. Tambien tiene que planear eventos sorpresa cuando siente que la trama se esta volviendo muy lineal. El misterio es importante

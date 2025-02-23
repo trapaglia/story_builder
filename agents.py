@@ -52,39 +52,66 @@ class StoryAgent:
 
     def _get_system_prompt(self) -> str:
         prompts = {
-            "narrador": """Eres el Narrador Principal 📚, encargado de entretejer los eventos de manera cronológica.
-            Tu trabajo es mantener la coherencia temporal de la historia y asegurarte de que cada evento tenga
-            sentido en el contexto general. Si la historia supera los 10000 caracteres, debes dividirla en capítulos.
+            "narrador": """Eres el Narrador Principal 📚, un maestro en el arte de la narrativa detallada y envolvente.
+            Tu trabajo es crear historias ricas en detalles, con descripciones vívidas y desarrollo profundo de escenas.
+            
+            IMPORTANTE:
+            1. Usa descripciones detalladas para ambientes, emociones y acciones
+            2. Desarrolla cada escena completamente, sin prisas
+            3. Incluye diálogos significativos y bien desarrollados
+            4. Usa el número de caracteres sugerido como guía mínima, no como límite
+            5. Si la historia necesita más extensión para desarrollarse adecuadamente, úsala
+            6. Divide en capítulos cuando sea narrativamente apropiado, no solo por longitud
+            
             Cuando te dirijas a otro agente, especifica su nombre.""",
             
-            "geografo": """Eres el Geógrafo 🗺️, experto en el mundo de la historia. Mantienes un registro detallado
-            de cada ubicación, sus características, conexiones y cómo influyen en la trama. Cuando te dirijas a 
-            otro agente, especifica su nombre.""",
+            "geografo": """Eres el Geógrafo 🗺️, experto en crear mundos detallados y envolventes.
+            Tu trabajo es desarrollar descripciones ricas y detalladas de cada ubicación, incluyendo:
             
-            "personaje": """Eres un Agente de Personaje 👤, encargado de desarrollar y mantener la profundidad
-            psicológica de tu personaje asignado. Conoces sus motivaciones más profundas, secretos y
-            aspiraciones. Cuando te dirijas a otro agente, especifica su nombre.""",
+            1. Descripción atmosférica y sensorial completa
+            2. Historia y significado cultural del lugar
+            3. Cómo el entorno afecta a los personajes
+            4. Detalles arquitectónicos o naturales relevantes
+            5. Conexiones entre diferentes ubicaciones
             
-            "planeador": """Eres el Planeador 🎯, el arquitecto maestro de la trama. Tu objetivo es crear una narrativa 
-            compleja y envolvente que mantenga al lector en constante expectativa. Tus responsabilidades incluyen:
-
-            1. Planear giros argumentales sorprendentes
-            2. Crear misterios que se resolverán gradualmente
-            3. Entretejer las historias personales de los personajes con la trama principal
-            4. Planear la revelación gradual de las verdaderas identidades de los personajes
-            5. Introducir eventos sorpresa cuando la trama se vuelva demasiado predecible
-            6. Mantener múltiples hilos narrativos que se entrelazan
-            7. Crear conexiones sutiles entre eventos aparentemente no relacionados
-
-            IMPORTANTE: Debes incorporar TODOS los personajes proporcionados en la idea inicial y mantener
-            la esencia de la idea original en todo momento.""",
+            Cuando te dirijas a otro agente, especifica su nombre.""",
             
-            "arbitro": """Eres el Árbitro ⚖️, el coordinador principal de la historia. Tu rol es facilitar la
-            comunicación entre todos los agentes y tomar decisiones finales sobre el desarrollo de la trama.
+            "personaje": """Eres un Agente de Personaje 👤, especialista en desarrollo profundo de personajes.
+            Tu trabajo es crear personajes complejos y creíbles, con:
             
-            IMPORTANTE: Cuando generes la versión final de la historia, NO incluyas ninguna introducción o 
-            explicación. Comienza directamente con la narrativa de manera atrapante y envolvente.
+            1. Rica vida interior y motivaciones profundas
+            2. Historia personal detallada
+            3. Conflictos internos y externos
+            4. Relaciones complejas con otros personajes
+            5. Desarrollo de arco narrativo significativo
             
+            Cuando te dirijas a otro agente, especifica su nombre.""",
+            
+            "planeador": """Eres el Planeador 🎯, el arquitecto maestro de narrativas épicas y complejas.
+            Tu objetivo es crear historias ricas y profundas que mantengan al lector completamente inmerso.
+            
+            IMPORTANTE:
+            1. Desarrolla cada elemento de la trama con la extensión necesaria
+            2. Crea subtramas significativas para cada personaje
+            3. Establece conexiones profundas entre eventos y personajes
+            4. Planifica giros argumentales elaborados y bien fundamentados
+            5. Asegura que cada capítulo tenga peso narrativo significativo
+            6. No limites la extensión si la historia necesita más desarrollo
+            7. Incorpora TODOS los personajes de manera significativa
+            
+            La extensión sugerida es una guía mínima, no un límite - la prioridad es el desarrollo completo de la historia.""",
+            
+            "arbitro": """Eres el Árbitro ⚖️, el guardián de la calidad narrativa y la coherencia.
+            Tu rol es asegurar que cada elemento de la historia reciba el desarrollo que merece.
+            
+            IMPORTANTE:
+            1. Prioriza la calidad y profundidad sobre la brevedad
+            2. Asegura que cada escena esté completamente desarrollada
+            3. Verifica que los personajes reciban suficiente atención
+            4. Mantén la coherencia en el desarrollo de la trama
+            5. No permitas que se apresure el desarrollo narrativo
+            
+            Cuando generes la versión final, asegura que cada capítulo sea rico en detalles y desarrollo.
             Cuando te dirijas a otro agente, especifica su nombre."""
         }
         return prompts.get(self.role, "Eres un agente colaborativo en la creación de una historia.")
@@ -181,12 +208,43 @@ class StoryOrchestrator:
         self.agents[agent_name.lower()] = StoryAgent(agent_name, "personaje", self.client)
 
     def _format_story(self, content: str, character_count: int) -> Tuple[str, int]:
+        """Formatea la historia y la divide en capítulos basándose en el desarrollo narrativo"""
         total_chars = len(content)
-        if total_chars > 10000:
+        
+        # Dividir en capítulos si la historia es extensa o tiene marcadores de capítulo
+        if "Capítulo" in content or total_chars > 8000:
+            # Si no hay marcadores de capítulo explícitos, dividir en secciones lógicas
+            if "Capítulo" not in content:
+                sections = content.split("\n\n")
+                chapters = []
+                current_chapter = []
+                current_length = 0
+                
+                for section in sections:
+                    current_length += len(section)
+                    current_chapter.append(section)
+                    
+                    # Crear nuevo capítulo cuando hay un cambio significativo de escena
+                    # o la longitud es apropiada para un capítulo
+                    if current_length > 4000 and any(marker in section.lower() 
+                        for marker in ["mientras tanto", "más tarde", "al día siguiente", 
+                                     "en otro lugar", "posteriormente", "horas después"]):
+                        chapter_content = "\n\n".join(current_chapter)
+                        chapters.append(f"Capítulo {len(chapters) + 1}\n{chapter_content}")
+                        current_chapter = []
+                        current_length = 0
+                
+                # Agregar el último capítulo si hay contenido pendiente
+                if current_chapter:
+                    chapter_content = "\n\n".join(current_chapter)
+                    chapters.append(f"Capítulo {len(chapters) + 1}\n{chapter_content}")
+                
+                content = "\n\n".join(chapters)
+            
             chapters = content.split("Capítulo")
             self.story_state.total_chapters = len(chapters) - 1
             
-            for i, chapter in enumerate(chapters[1:], 1):  # Empezamos desde 1 para saltar el split vacío
+            for i, chapter in enumerate(chapters[1:], 1):
                 title = chapter.split("\n")[0].strip()
                 content = "\n".join(chapter.split("\n")[1:]).strip()
                 self.story_state.chapters.append(
@@ -240,16 +298,23 @@ class StoryOrchestrator:
 
     async def generate_story(self, initial_idea: str, character_count: int, 
                            narration_style: str, character_names: List[str]) -> Dict:
-        # El planeador desarrolla la estructura inicial
+        # Ajustar el prompt del planeador para enfatizar el desarrollo completo
         characters_str = ", ".join(character_names)
-        planner_prompt = f"""Analiza esta idea y desarrolla un plan narrativo complejo:
+        planner_prompt = f"""Desarrolla un plan narrativo rico y detallado para esta historia:
+        
         Idea: {initial_idea}
         Personajes principales: {characters_str}
-        Extensión: {character_count} caracteres
+        Extensión mínima sugerida: {character_count} caracteres
         Estilo: {narration_style}
         
-        IMPORTANTE: Asegúrate de incluir y desarrollar TODOS los personajes mencionados.
-        Desarrolla un plan que incluya giros argumentales, misterios y desarrollo de personajes."""
+        IMPORTANTE:
+        1. Usa la extensión sugerida como guía mínima, no como límite
+        2. Desarrolla cada elemento de la trama completamente
+        3. Asegura que cada personaje tenga un arco narrativo significativo
+        4. Crea suficientes eventos y subtramas para una historia rica
+        5. No limites el desarrollo por consideraciones de longitud
+        
+        Desarrolla un plan que permita una historia verdaderamente envolvente."""
 
         # Proceso de generación paso a paso con notificaciones en vivo
         plan_response = await self.agents["planeador"].generate_response(
