@@ -35,10 +35,18 @@ function renderAgentChat(chatHistory) {
     chatHistory.forEach(message => {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'agent-message';
+        
+        // Crear el encabezado del mensaje con el nombre del agente y a quién habla
+        const headerContent = message.speaking_to === "todos" ? 
+            `${message.agent}` : 
+            `${message.agent} ${message.speaking_to}`;
+        
         messageDiv.innerHTML = `
-            <div class="agent-name">${message.agent}</div>
+            <div class="agent-header">
+                <span class="agent-name">${headerContent}</span>
+                <span class="timestamp">${formatTimestamp(message.timestamp)}</span>
+            </div>
             <div class="message-content">${message.content}</div>
-            <div class="timestamp">${formatTimestamp(message.timestamp)}</div>
         `;
         chatContainer.appendChild(messageDiv);
     });
