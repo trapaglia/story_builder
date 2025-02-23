@@ -1,0 +1,30 @@
+.story-content {
+    min-height: 300px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    white-space: pre-wrap;
+}
+
+#loading {
+    text-align: center;
+    padding: 20px;
+}
+
+.card {
+    height: 100%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card-body {
+    display: flex;
+    flex-direction: column;
+}
+
+textarea.form-control {
+    resize: vertical;
+}
+
+.btn-primary {
+    margin-top: auto;
+} 

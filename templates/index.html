@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Historias</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Generador de Historias</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Configura tu historia</h5>
+                        <form id="storyForm">
+                            <div class="mb-3">
+                                <label for="initial_idea" class="form-label">Idea inicial</label>
+                                <textarea class="form-control" id="initial_idea" rows="3" required 
+                                    placeholder="Describe la idea principal de tu historia..."></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="character_count" class="form-label">Número aproximado de caracteres</label>
+                                <input type="number" class="form-control" id="character_count" required 
+                                    min="100" value="1000">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="narration_style" class="form-label">Estilo de narración</label>
+                                <select class="form-control" id="narration_style" required>
+                                    <option value="descriptivo">Descriptivo</option>
+                                    <option value="dialogado">Dialogado</option>
+                                    <option value="primera_persona">Primera persona</option>
+                                    <option value="tercera_persona">Tercera persona</option>
+                                </select>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Generar Historia</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Tu Historia</h5>
+                        <div id="storyOutput" class="story-content">
+                            <p class="text-muted">Tu historia aparecerá aquí...</p>
+                        </div>
+                        <div id="loading" class="d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p class="text-muted">Generando tu historia...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html> 
