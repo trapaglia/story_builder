@@ -52,13 +52,17 @@ class VoiceAssistant:
 
     def create_popup(self, text, with_audio=False, audio_data=None):
         """Crea una ventana popup con el texto y opcionalmente audio"""
+        print("🎯 Iniciando creación de ventana popup...")
         if self.window is not None:
+            print("🔄 Cerrando ventana anterior...")
             self.window.destroy()
         
+        print("📊 Configurando nueva ventana...")
         self.window = tk.Tk()
         self.window.title("Asistente de Voz")
         self.window.geometry("400x300")
         
+        print("🎨 Aplicando estilos...")
         # Estilo y tema
         style = ttk.Style()
         style.configure("Custom.TLabel", padding=10, font=('Arial', 11))
@@ -67,6 +71,7 @@ class VoiceAssistant:
         frame = ttk.Frame(self.window, padding="10")
         frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
+        print("📝 Insertando texto en la ventana...")
         # Texto
         text_widget = tk.Text(frame, wrap=tk.WORD, height=8, font=('Arial', 11))
         text_widget.insert(tk.END, text)
@@ -75,21 +80,40 @@ class VoiceAssistant:
         
         # Si hay audio, agregar controles
         if with_audio and audio_data:
+            print("🔊 Configurando controles de audio...")
             # Guardar el audio temporalmente
             temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp3')
             temp_file.write(audio_data)
             temp_file.close()
             
             def play_audio():
-                data, sr = sf.read(temp_file.name)
-                sd.play(data, sr)
-                sd.wait()
+                print("▶️ Reproduciendo audio...")
+                try:
+                    data, sr = sf.read(temp_file.name)
+                    sd.play(data, sr)
+                    sd.wait()
+                    print("⏹️ Reproducción finalizada")
+                except Exception as e:
+                    print(f"❌ Error reproduciendo audio: {e}")
             
             ttk.Button(frame, text="Reproducir Audio", command=play_audio).grid(row=1, column=0, pady=5)
         
+        print("🔳 Agregando botón de cerrar...")
+        def on_close():
+            print("🚪 Cerrando ventana...")
+            if with_audio and audio_data:
+                try:
+                    os.unlink(temp_file.name)
+                    print("🗑️ Archivo de audio temporal eliminado")
+                except:
+                    pass
+            self.window.destroy()
+            
         # Botón cerrar
-        ttk.Button(frame, text="Cerrar", command=self.window.destroy).grid(row=2, column=0, pady=10)
+        ttk.Button(frame, text="Cerrar", command=on_close).grid(row=2, column=0, pady=10)
+        self.window.protocol("WM_DELETE_WINDOW", on_close)
         
+        print("📐 Centrando ventana en la pantalla...")
         # Centrar la ventana
         self.window.update_idletasks()
         width = self.window.winfo_width()
@@ -98,8 +122,17 @@ class VoiceAssistant:
         y = (self.window.winfo_screenheight() // 2) - (height // 2)
         self.window.geometry(f'{width}x{height}+{x}+{y}')
         
+        print("🔝 Elevando ventana al frente...")
         self.window.lift()
         self.window.focus_force()
+        
+        # Configurar para que la ventana siempre esté al frente
+        self.window.attributes('-topmost', True)
+        self.window.update()
+        
+        print("🔄 Iniciando bucle de eventos...")
+        self.window.mainloop()
+        print("✅ Ventana popup cerrada")
 
     def start_recording(self):
         """Inicia la grabación de audio"""
@@ -116,7 +149,9 @@ class VoiceAssistant:
 
     def stop_recording(self, is_chat=False):
         """Detiene la grabación y procesa el audio"""
+        print("⏺️ Deteniendo grabación...")
         if not self.recording:
+            print("❌ No hay grabación activa")
             return
             
         self.recording = False
@@ -124,11 +159,14 @@ class VoiceAssistant:
         self.stream.close()
         
         if not self.frames:
+            print("❌ No se capturaron frames de audio")
             return
             
+        print("🎵 Procesando frames de audio...")
         # Convertir frames a audio
         audio_data = np.concatenate(self.frames, axis=0)
         
+        print("💾 Guardando archivo WAV temporal...")
         # Guardar temporalmente como WAV
         with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_wav:
             with wave.open(temp_wav.name, 'wb') as wf:
@@ -138,6 +176,7 @@ class VoiceAssistant:
                 wf.writeframes((audio_data * 32767).astype(np.int16).tobytes())
         
         try:
+            print("🎤 Transcribiendo audio con Whisper...")
             # Transcribir audio
             with open(temp_wav.name, 'rb') as audio_file:
                 transcript = self.openai_client.audio.transcriptions.create(
@@ -146,7 +185,10 @@ class VoiceAssistant:
                     language="es"
                 )
             
+            print(f"📝 Texto transcrito: {transcript.text}")
+            
             if is_chat:
+                print("💭 Generando respuesta con ChatGPT...")
                 # Obtener respuesta del chat
                 completion = self.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
@@ -156,7 +198,9 @@ class VoiceAssistant:
                     ]
                 )
                 response_text = completion.choices[0].message.content
+                print(f"🤖 Respuesta generada: {response_text}")
                 
+                print("🗣️ Convirtiendo texto a voz...")
                 # Convertir respuesta a voz
                 synthesis_input = texttospeech.SynthesisInput(text=response_text)
                 response = self.tts_client.synthesize_speech(
@@ -165,15 +209,19 @@ class VoiceAssistant:
                     audio_config=self.audio_config
                 )
                 
+                print("🪟 Mostrando ventana con respuesta y audio...")
                 # Mostrar respuesta con audio
                 self.create_popup(response_text, True, response.audio_content)
             else:
+                print("🪟 Mostrando ventana con transcripción...")
                 # Solo mostrar transcripción
                 self.create_popup(transcript.text)
                 
         except Exception as e:
+            print(f"❌ Error durante el procesamiento: {str(e)}")
             self.create_popup(f"Error: {str(e)}")
         finally:
+            print("🧹 Limpiando archivo temporal...")
             os.unlink(temp_wav.name)
 
     def on_press(self, key):
@@ -223,12 +271,17 @@ class VoiceAssistant:
             print("✓ Icono en bandeja del sistema iniciado")
 
             print("Iniciando listener de teclado...")
-            # Iniciar el listener de teclado
-            with keyboard.Listener(
+            # Iniciar el listener de teclado en un hilo separado
+            keyboard_listener = keyboard.Listener(
                 on_press=self.on_press,
-                on_release=self.on_release) as listener:
-                print("✓ Listener de teclado iniciado - Esperando teclas F8/F9...")
-                listener.join()
+                on_release=self.on_release)
+            keyboard_listener.start()
+            print("✓ Listener de teclado iniciado - Esperando teclas F8/F9...")
+            
+            # Crear una ventana oculta para mantener el bucle de eventos
+            root = tk.Tk()
+            root.withdraw()  # Ocultar la ventana
+            root.mainloop()
 
         except Exception as e:
             print(f"❌ Error al iniciar la aplicación: {e}")
