@@ -52,24 +52,42 @@ class StoryOrchestrator:
     async def generate_story(self, initial_idea: str, character_count: int, 
                            narration_style: str, character_names: List[str]) -> Dict:
         # Paso 1: El planeador crea el esquema completo de capítulos
-        planner_prompt = f"""Desarrolla un esquema detallado de capítulos para esta historia:
-        
-        Idea: {initial_idea}
-        Personajes principales: {", ".join(character_names)}
-        Extensión mínima sugerida: {character_count} caracteres
-        Estilo: {narration_style}
-        
-        Para cada capítulo, proporciona:
-        1. Título
-        2. Resumen breve
-        3. Eventos clave
-        4. Personajes involucrados
-        5. Ubicaciones principales
-        
-        IMPORTANTE:
-        - Desarrolla una estructura coherente y progresiva
-        - Asegura que cada personaje tenga momentos significativos
-        - Distribuye el desarrollo de la trama de manera equilibrada"""
+        planner_prompt = f"""Desarrolla un esquema detallado de capítulos para esta historia siguiendo EXACTAMENTE este formato para cada capítulo:
+
+Capítulo [número]: [título descriptivo]
+Resumen: [resumen conciso del capítulo]
+Eventos clave:
+- [evento principal]
+- [evento secundario]
+- [otros eventos relevantes...]
+Personajes involucrados:
+- [nombre del personaje principal]
+- [nombre de personaje secundario]
+- [otros personajes...]
+Ubicaciones:
+- [ubicación principal]
+- [ubicación secundaria]
+- [otras ubicaciones...]
+
+[Repetir el mismo formato para cada capítulo]
+
+Datos de la historia:
+Idea: {initial_idea}
+Personajes disponibles: {", ".join(character_names)}
+Extensión sugerida: {character_count} caracteres
+Estilo narrativo: {narration_style}
+
+REGLAS IMPORTANTES:
+1. DEBES usar EXACTAMENTE el formato especificado arriba
+2. Cada capítulo DEBE tener todas las secciones en el orden mostrado
+3. Usa guiones (-) para listar eventos, personajes y ubicaciones
+4. El resumen debe ser conciso y claro
+5. Incluye al menos 2-3 eventos clave por capítulo
+6. Asegúrate de que cada personaje tenga momentos significativos
+7. Especifica ubicaciones concretas, no genéricas
+8. Mantén una progresión coherente entre capítulos
+9. NO agregues secciones adicionales ni modifiques los nombres de las secciones
+10. NO uses otros formatos de lista que no sean guiones (-)"""
 
         chapter_outline = await self.agents["planeador"].generate_response(
             planner_prompt, self.chat_history
