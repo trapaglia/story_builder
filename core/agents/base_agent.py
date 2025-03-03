@@ -7,7 +7,6 @@ class StoryAgent:
         self.name = name
         self.role = role
         self.client = client
-        self.memory: List[Message] = []
         self.system_prompt = self._get_system_prompt()
         self.emoji = self._get_emoji()
 
