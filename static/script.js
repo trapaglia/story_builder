@@ -37,6 +37,11 @@ function formatTimestamp(isoString) {
 function renderAgentChat(chatHistory) {
     const chatContainer = document.getElementById('agentChat');
     
+    // Limpiar el mensaje inicial si existe
+    if (chatContainer.querySelector('.text-muted')) {
+        chatContainer.innerHTML = '';
+    }
+    
     // Si es un nuevo mensaje, añadirlo al final
     if (Array.isArray(chatHistory) && chatHistory.length > 0) {
         chatHistory.forEach(message => {
@@ -54,9 +59,23 @@ function renderAgentChat(chatHistory) {
                 </div>
                 <div class="message-content">${message.content}</div>
             `;
+            
+            // Agregar animación de entrada
+            messageDiv.style.opacity = '0';
             chatContainer.appendChild(messageDiv);
+            
+            // Animar la entrada del mensaje
+            requestAnimationFrame(() => {
+                messageDiv.style.transition = 'opacity 0.3s ease-in';
+                messageDiv.style.opacity = '1';
+            });
         });
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        // Scroll suave al último mensaje
+        chatContainer.scrollTo({
+            top: chatContainer.scrollHeight,
+            behavior: 'smooth'
+        });
     }
 }
 
@@ -70,15 +89,20 @@ function startEventSource() {
     
     eventSource.onmessage = function(event) {
         const data = JSON.parse(event.data);
-        if (data.type !== 'heartbeat' && data.chat_history) {
+        if (data.type === 'heartbeat') {
+            return;
+        }
+        
+        if (data.chat_history) {
             renderAgentChat(data.chat_history);
         }
     };
     
     eventSource.onerror = function() {
         console.log('SSE Error, reconectando...');
-        eventSource.close();
-        setTimeout(startEventSource, 1000);
+        if (eventSource.readyState === EventSource.CLOSED) {
+            setTimeout(startEventSource, 1000);
+        }
     };
 }
 
@@ -86,9 +110,11 @@ function startEventSource() {
 async function handleNextChapter() {
     const feedbackText = document.getElementById('chapter-feedback-text').value;
     const loadingElement = document.getElementById('loading');
+    const nextChapterButton = document.getElementById('next-chapter');
     
     try {
         loadingElement.classList.remove('d-none');
+        nextChapterButton.disabled = true;
         
         const response = await fetch('/next_chapter', {
             method: 'POST',
@@ -115,10 +141,20 @@ async function handleNextChapter() {
         
         currentChapter = data.chapter_number;
         document.getElementById('current-chapter').textContent = currentChapter;
-        document.getElementById('storyOutput').innerHTML = `
-            <h3>Capítulo ${data.chapter_number}: ${data.chapter_title}</h3>
-            ${data.content}
-        `;
+        
+        // Animar la transición del capítulo
+        const storyOutput = document.getElementById('storyOutput');
+        storyOutput.style.opacity = '0';
+        
+        setTimeout(() => {
+            storyOutput.innerHTML = `
+                <h3>Capítulo ${data.chapter_number}: ${data.chapter_title}</h3>
+                ${data.content}
+            `;
+            storyOutput.style.transition = 'opacity 0.5s ease-in';
+            storyOutput.style.opacity = '1';
+        }, 300);
+        
         document.getElementById('char-count').textContent = data.character_count;
         document.getElementById('chapter-feedback-text').value = '';
         
@@ -128,6 +164,7 @@ async function handleNextChapter() {
             <p class="text-danger">Error al cargar el siguiente capítulo: ${error}</p>`;
     } finally {
         loadingElement.classList.add('d-none');
+        nextChapterButton.disabled = false;
     }
 }
 
@@ -148,9 +185,14 @@ document.getElementById('storyForm').addEventListener('submit', async function(e
     // Mostrar loading y ocultar contenido anterior
     const loadingElement = document.getElementById('loading');
     const storyOutput = document.getElementById('storyOutput');
+    const submitButton = this.querySelector('button[type="submit"]');
+    
     loadingElement.classList.remove('d-none');
     storyOutput.innerHTML = '';
-    document.getElementById('agentChat').innerHTML = '';
+    document.getElementById('agentChat').innerHTML = `
+        <p class="text-muted">Iniciando generación de historia...</p>
+    `;
+    submitButton.disabled = true;
     
     // Obtener los valores del formulario
     const initialIdea = document.getElementById('initial_idea').value;
@@ -180,7 +222,15 @@ document.getElementById('storyForm').addEventListener('submit', async function(e
         const data = await response.json();
         
         if (response.ok) {
+            // Animar la aparición de la historia
+            storyOutput.style.opacity = '0';
             storyOutput.textContent = data.final_story;
+            
+            requestAnimationFrame(() => {
+                storyOutput.style.transition = 'opacity 0.5s ease-in';
+                storyOutput.style.opacity = '1';
+            });
+            
             document.getElementById('char-count').textContent = data.total_chars;
             
             if (data.has_more_chapters) {
@@ -197,6 +247,7 @@ document.getElementById('storyForm').addEventListener('submit', async function(e
         storyOutput.innerHTML = `<p class="text-danger">Error al conectar con el servidor: ${error}</p>`;
     } finally {
         loadingElement.classList.add('d-none');
+        submitButton.disabled = false;
         storyInProgress = false;
     }
 }); 

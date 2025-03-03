@@ -13,6 +13,7 @@ class StoryOrchestrator:
         self.chat_history: List[Message] = []
         self.story_state = StoryState()
         self._pending_chapters = []
+        self._chat_callback = None
         self._initialize_agents()
 
     def _initialize_agents(self):
@@ -35,19 +36,26 @@ class StoryOrchestrator:
         agent_name = f"Personaje_{character_name}"
         self.agents[agent_name.lower()] = StoryAgent(agent_name, "personaje", self.client)
 
+    def set_chat_callback(self, callback):
+        """Establece una función callback para notificar actualizaciones del chat en tiempo real."""
+        self._chat_callback = callback
+
     async def process_agent_interaction(self, message: Message) -> Dict:
         self.chat_history.append(message)
-        return {
-            "chat_history": [
-                {
-                    "agent": msg.agent_name,
-                    "content": msg.content,
-                    "timestamp": msg.timestamp.isoformat(),
-                    "speaking_to": msg.speaking_to
-                }
-                for msg in [message]  # Solo enviamos el mensaje actual
-            ]
+        
+        # Convertir el mensaje a formato JSON
+        message_data = {
+            "agent": message.agent_name,
+            "content": message.content,
+            "timestamp": message.timestamp.isoformat(),
+            "speaking_to": message.speaking_to
         }
+        
+        # Notificar a través del callback si está configurado
+        if self._chat_callback:
+            self._chat_callback(message_data)
+        
+        return {"chat_history": [message_data]}
 
     async def generate_story(self, initial_idea: str, character_count: int, 
                            narration_style: str, character_names: List[str]) -> Dict:

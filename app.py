@@ -76,14 +76,18 @@ def generate_story():
         orchestrator.add_character_agent(name)
     
     try:
+        # Configurar un callback para manejar las actualizaciones del chat en tiempo real
+        def chat_update_callback(message):
+            chat_updates.put({"chat_history": [message]})
+            chat_event.set()
+        
+        # Asignar el callback al orquestador
+        orchestrator.set_chat_callback(chat_update_callback)
+        
         # Generar la historia de manera síncrona
         result = async_to_sync(orchestrator.generate_story)(
             initial_idea, character_count, narration_style, character_names
         )
-        
-        # Notificar a los clientes sobre la actualización del chat
-        chat_updates.put({"chat_history": result["chat_history"]})
-        chat_event.set()
         
         return jsonify(result)
     
