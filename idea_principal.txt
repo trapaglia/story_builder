@@ -1,0 +1,36 @@
+Idea Principal del Proyecto - Story Builder
+
+Este proyecto es un generador de historias colaborativo que utiliza múltiples agentes de IA para crear narrativas ricas y detalladas. 
+
+Componentes Principales:
+
+1. Sistema de Agentes (agents.py):
+   - Narrador (📚): Encargado de crear la narrativa principal y desarrollar las escenas
+   - Geógrafo (🗺️): Especialista en crear y describir los mundos y ubicaciones
+   - Personajes (👤): Agentes dedicados al desarrollo de cada personaje
+   - Árbitro (⚖️): Supervisa la calidad y coherencia de la narrativa
+   - Planeador (🎯): Diseña la estructura y desarrollo de la historia
+
+2. Funcionalidades Principales (app.py):
+   - Generación de historias basadas en ideas iniciales
+   - Sistema de capítulos con retroalimentación
+   - Comunicación en tiempo real entre agentes
+   - Interfaz web para interacción con usuarios
+
+Características Destacadas:
+- Generación de historias por capítulos
+- Sistema de feedback para cada capítulo
+- Colaboración entre múltiples agentes de IA
+- Personalización de:
+  * Idea inicial
+  * Número de caracteres
+  * Estilo de narración
+  * Personajes principales
+
+El proyecto utiliza:
+- Flask para el backend
+- OpenAI API para los agentes de IA
+- Sistema de eventos en tiempo real para mostrar la interacción entre agentes
+- Arquitectura modular y orientada a objetos
+
+La particularidad del sistema es que cada agente tiene un rol específico y trabajan en conjunto para crear una historia coherente y bien desarrollada, similar a un equipo de escritores colaborando en una obra. 

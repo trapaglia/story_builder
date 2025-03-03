@@ -2,13 +2,13 @@ from flask import Flask, render_template, request, jsonify, Response
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
-from agents import StoryOrchestrator
-import asyncio
 import json
 from queue import Queue
 from threading import Event
 import time
 from asgiref.sync import async_to_sync
+
+from core import StoryOrchestrator
 
 # Cargar variables de entorno
 load_dotenv()

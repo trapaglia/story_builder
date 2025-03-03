@@ -31,6 +31,15 @@ class StoryState:
         if self.chapters is None:
             self.chapters = []
 
+@dataclass
+class ChapterOutline:
+    number: int
+    title: str
+    summary: str
+    key_events: List[str]
+    characters_involved: List[str]
+    locations: List[str]
+
 class StoryAgent:
     def __init__(self, name: str, role: str, client: OpenAI):
         self.name = name
@@ -148,6 +157,7 @@ class StoryOrchestrator:
         """Reinicia el estado del orquestador para una nueva historia"""
         self.chat_history = []
         self.story_state = StoryState()
+        self._pending_chapters = []
         # Mantener solo los agentes base, eliminar personajes
         base_agents = {name: agent for name, agent in self.agents.items() 
                       if "personaje" not in name.lower()}
@@ -264,22 +274,31 @@ class StoryOrchestrator:
                 current_chapter.feedback = []
             current_chapter.feedback.append(feedback)
 
-        self.story_state.current_chapter += 1
-        if self.story_state.current_chapter >= len(self.story_state.chapters):
+        # Si hay capítulos pendientes, desarrollar el siguiente
+        if self._pending_chapters:
+            next_outline = self._pending_chapters.pop(0)
+            next_chapter = async_to_sync(self._develop_chapter)(
+                next_outline, 
+                [agent.name.split('_')[1] for agent in self.agents.values() if 'personaje' in agent.name.lower()],
+                "descriptivo"  # Esto debería venir del estado de la historia
+            )
+            self.story_state.chapters.append(next_chapter)
+            self.story_state.current_chapter += 1
+            self.story_state.total_chars += len(next_chapter.content)
+            
             return {
-                "is_complete": True,
-                "total_chapters": len(self.story_state.chapters),
-                "total_chars": self.story_state.total_chars
+                "chapter_number": next_chapter.number,
+                "chapter_title": next_chapter.title,
+                "content": next_chapter.content,
+                "character_count": next_chapter.character_count,
+                "is_complete": len(self._pending_chapters) == 0,
+                "total_chapters": self.story_state.total_chapters
             }
-
-        next_chapter = self.story_state.chapters[self.story_state.current_chapter]
+        
         return {
-            "chapter_number": next_chapter.number,
-            "chapter_title": next_chapter.title,
-            "content": next_chapter.content,
-            "character_count": next_chapter.character_count,
-            "is_complete": False,
-            "total_chapters": len(self.story_state.chapters)
+            "is_complete": True,
+            "total_chapters": len(self.story_state.chapters),
+            "total_chars": self.story_state.total_chars
         }
 
     async def process_agent_interaction(self, message: Message) -> Dict:
@@ -297,111 +316,56 @@ class StoryOrchestrator:
         }
 
     async def generate_story(self, initial_idea: str, character_count: int, 
-                           narration_style: str, character_names: List[str]) -> Dict:
-        # Ajustar el prompt del planeador para enfatizar el desarrollo completo
-        characters_str = ", ".join(character_names)
-        planner_prompt = f"""Desarrolla un plan narrativo rico y detallado para esta historia:
+                            narration_style: str, character_names: List[str]) -> Dict:
+        # Paso 1: El planeador crea el esquema completo de capítulos
+        planner_prompt = f"""Desarrolla un esquema detallado de capítulos para esta historia:
         
         Idea: {initial_idea}
-        Personajes principales: {characters_str}
+        Personajes principales: {", ".join(character_names)}
         Extensión mínima sugerida: {character_count} caracteres
         Estilo: {narration_style}
         
-        IMPORTANTE:
-        1. Usa la extensión sugerida como guía mínima, no como límite
-        2. Desarrolla cada elemento de la trama completamente
-        3. Asegura que cada personaje tenga un arco narrativo significativo
-        4. Crea suficientes eventos y subtramas para una historia rica
-        5. No limites el desarrollo por consideraciones de longitud
+        Para cada capítulo, proporciona:
+        1. Título
+        2. Resumen breve
+        3. Eventos clave
+        4. Personajes involucrados
+        5. Ubicaciones principales
         
-        Desarrolla un plan que permita una historia verdaderamente envolvente."""
+        IMPORTANTE:
+        - Desarrolla una estructura coherente y progresiva
+        - Asegura que cada personaje tenga momentos significativos
+        - Distribuye el desarrollo de la trama de manera equilibrada"""
 
-        # Proceso de generación paso a paso con notificaciones en vivo
-        plan_response = await self.agents["planeador"].generate_response(
+        chapter_outline = await self.agents["planeador"].generate_response(
             planner_prompt, self.chat_history
         )
         
         await self.process_agent_interaction(Message(
             agent_name=f"{self.agents['planeador'].emoji} Planeador",
-            content=plan_response,
+            content=chapter_outline,
             timestamp=datetime.now(),
             speaking_to="todos"
         ))
 
-        # El narrador recibe el plan y lo desarrolla
-        narrator_prompt = f"Basándote en este plan del Planeador, desarrolla la estructura narrativa: {plan_response}"
-        narrator_response = await self.agents["narrador"].generate_response(
-            narrator_prompt, self.chat_history
-        )
-        
-        await self.process_agent_interaction(Message(
-            agent_name=f"{self.agents['narrador'].emoji} Narrador",
-            content=narrator_response,
-            timestamp=datetime.now(),
-            speaking_to="todos"
-        ))
+        # Procesar el esquema y crear la estructura de capítulos
+        chapters_data = self._parse_chapter_outline(chapter_outline)
+        self.story_state.chapters = []
+        self.story_state.total_chapters = len(chapters_data)
 
-        # El geógrafo propone escenarios y conexiones
-        geography_prompt = f"Analiza la estructura narrativa y propón escenarios y conexiones geográficas: {narrator_response}"
-        geography_response = await self.agents["geografo"].generate_response(
-            geography_prompt, self.chat_history,
-            speaking_to="Planeador"
-        )
+        # Paso 2: Desarrollar cada capítulo secuencialmente
+        first_chapter = await self._develop_chapter(chapters_data[0], character_names, narration_style)
         
-        await self.process_agent_interaction(Message(
-            agent_name=f"{self.agents['geografo'].emoji} Geógrafo",
-            content=geography_response,
-            timestamp=datetime.now(),
-            speaking_to="→ Planeador"
-        ))
-
-        # Los personajes dan feedback y desarrollan sus motivaciones
-        for name, agent in self.agents.items():
-            if "personaje" in name.lower():
-                character_prompt = f"""Analiza la estructura narrativa desde la perspectiva de tu personaje.
-                Desarrolla tus motivaciones, secretos y conexiones con la trama: {narrator_response}
-                Considera también los escenarios propuestos: {geography_response}"""
-                
-                character_response = await agent.generate_response(
-                    character_prompt, self.chat_history,
-                    speaking_to="Planeador"
-                )
-                
-                await self.process_agent_interaction(Message(
-                    agent_name=f"{agent.emoji} {agent.name}",
-                    content=character_response,
-                    timestamp=datetime.now(),
-                    speaking_to="→ Planeador"
-                ))
-
-        # El planeador ajusta basado en todo el feedback
-        planner_adjustment = await self.agents["planeador"].generate_response(
-            "Ajusta el plan considerando todas las contribuciones y feedback recibidos.",
-            self.chat_history
-        )
+        # Almacenar el primer capítulo y preparar el estado para los siguientes
+        self.story_state.chapters.append(first_chapter)
+        self.story_state.current_chapter = 0
+        self.story_state.total_chars = len(first_chapter.content)
         
-        await self.process_agent_interaction(Message(
-            agent_name=f"{self.agents['planeador'].emoji} Planeador",
-            content=planner_adjustment,
-            timestamp=datetime.now(),
-            speaking_to="→ Narrador"
-        ))
+        # Almacenar los esquemas restantes para desarrollo posterior
+        self._pending_chapters = chapters_data[1:]
 
-        # El narrador genera la versión final
-        final_prompt = f"""Genera la versión final de la historia basándote en el plan ajustado.
-        Si supera los 10000 caracteres, divídela en capítulos.
-        IMPORTANTE: Comienza directamente con la narrativa, sin introducción ni explicaciones."""
-        
-        final_story = await self.agents["narrador"].generate_response(
-            final_prompt, self.chat_history
-        )
-
-        # Formatear la historia y contar caracteres
-        formatted_story, total_chars = self._format_story(final_story, character_count)
-        self.story_state.total_chars = total_chars
-        
         return {
-            "final_story": formatted_story,
+            "final_story": f"Capítulo {first_chapter.number}: {first_chapter.title}\n\n{first_chapter.content}",
             "chat_history": [
                 {
                     "agent": msg.agent_name,
@@ -411,8 +375,77 @@ class StoryOrchestrator:
                 }
                 for msg in self.chat_history
             ],
-            "has_more_chapters": len(self.story_state.chapters) > 1,
-            "total_chapters": len(self.story_state.chapters),
+            "has_more_chapters": len(self._pending_chapters) > 0,
+            "total_chapters": self.story_state.total_chapters,
             "current_chapter": 1,
-            "total_chars": total_chars
-        } 
+            "total_chars": self.story_state.total_chars
+        }
+
+    async def _develop_chapter(self, chapter_outline: ChapterOutline, character_names: List[str], narration_style: str) -> Chapter:
+        # El geógrafo desarrolla las ubicaciones
+        geography_prompt = f"""Desarrolla descripciones detalladas para las ubicaciones de este capítulo:
+        Ubicaciones: {', '.join(chapter_outline.locations)}
+        Contexto del capítulo: {chapter_outline.summary}"""
+        
+        geography_response = await self.agents["geografo"].generate_response(
+            geography_prompt, self.chat_history
+        )
+        
+        await self.process_agent_interaction(Message(
+            agent_name=f"{self.agents['geografo'].emoji} Geógrafo",
+            content=geography_response,
+            timestamp=datetime.now(),
+            speaking_to="→ Narrador"
+        ))
+
+        # Los personajes desarrollan sus motivaciones y acciones
+        character_responses = []
+        for name in chapter_outline.characters_involved:
+            if f"personaje_{name.lower()}" in self.agents:
+                character_prompt = f"""Desarrolla las acciones y motivaciones de tu personaje para este capítulo:
+                Contexto: {chapter_outline.summary}
+                Eventos clave: {', '.join(chapter_outline.key_events)}"""
+                
+                character_response = await self.agents[f"personaje_{name.lower()}"].generate_response(
+                    character_prompt, self.chat_history
+                )
+                
+                await self.process_agent_interaction(Message(
+                    agent_name=f"{self.agents[f'personaje_{name.lower()}'].emoji} Personaje_{name}",
+                    content=character_response,
+                    timestamp=datetime.now(),
+                    speaking_to="→ Narrador"
+                ))
+                character_responses.append(character_response)
+
+        # El narrador integra todo en la versión final del capítulo
+        narrator_prompt = f"""Desarrolla el capítulo completo integrando todos los elementos:
+        
+        Título: {chapter_outline.title}
+        Resumen: {chapter_outline.summary}
+        Eventos clave: {', '.join(chapter_outline.key_events)}
+        Descripciones de ubicaciones: {geography_response}
+        Desarrollo de personajes: {' | '.join(character_responses)}
+        Estilo narrativo: {narration_style}
+        
+        IMPORTANTE: Comienza directamente con la narrativa, sin introducción ni explicaciones."""
+        
+        chapter_content = await self.agents["narrador"].generate_response(
+            narrator_prompt, self.chat_history
+        )
+        
+        return Chapter(
+            number=chapter_outline.number,
+            title=chapter_outline.title,
+            content=chapter_content,
+            character_count=len(chapter_content)
+        )
+
+    def _parse_chapter_outline(self, outline: str) -> List[ChapterOutline]:
+        # Implementar la lógica para parsear el esquema de capítulos del planeador
+        # y convertirlo en una lista de ChapterOutline
+        # Esta es una implementación básica que deberías adaptar según el formato exacto
+        # que genere el planeador
+        chapters = []
+        # ... lógica de parsing ...
+        return chapters 
