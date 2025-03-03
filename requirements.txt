@@ -5,4 +5,10 @@ PyAudio
 pynput==1.7.6
 requests==2.31.0
 psutil==5.9.8
-infi.systray==0.1.12 
+infi.systray==0.1.12
+sounddevice==0.4.6
+numpy>=1.24.0
+openai>=1.3.7,<1.11.0
+google-cloud-texttospeech==2.14.1
+python-dotenv==1.0.0
+soundfile==0.12.1
