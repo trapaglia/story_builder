@@ -1,4 +1,8 @@
 SpeechRecognition
 pyautogui
 keyboard
-PyAudio 
+PyAudio
+pynput==1.7.6
+requests==2.31.0
+psutil==5.9.8
+infi.systray==0.1.12 

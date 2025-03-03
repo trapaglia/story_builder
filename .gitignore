@@ -23,6 +23,7 @@ var/
 # Virtual Environment
 venv/
 ENV/
+.venv/
 
 # IDEs
 .idea/
@@ -33,3 +34,18 @@ ENV/
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Node.js
+node_modules/
+.env
+public/temp/
+*.log
+
+# Credenciales
+text2speech_cred.json
+
+# Archivos específicos de la aplicación
+*.pyc
+.env.local
+dist/
+build/
